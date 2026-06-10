@@ -1,0 +1,39 @@
+name: Despliegue Automático a GitHub Pages
+
+on:
+# Se ejecuta al hacer push a la rama principal push:
+branches: [ main ]
+# Permite ejecutar este workflow manualmente desde la pestaña Actions workflow_dispatch:
+# Configuración de permisos críticos para interactuar de forma segura con GitHub Pages permissions:
+contents: read pages: write
+id-token: write
+
+# Evita que se acumulen despliegues si haces pushes muy seguidos concurrency:
+group: "pages"
+cancel-in-progress: true
+
+jobs:
+# --- TRABAJO 1: COMPILACIÓN ---
+build:
+runs-on: ubuntu-latest steps:
+-	name: Clonar el repositorio uses: actions/checkout@v4
+-	name: Configurar Node.js uses: actions/setup-node@v4 with:
+node-version: '20'
+cache: 'npm' # Optimiza la velocidad guardando la caché de dependencias
+-	name: Instalar dependencias
+run: npm ci # Instalación limpia y rápida para entornos de CI
+
+-	name: Compilar el sitio web run: npm run build
+# Supongamos que esto genera tus archivos estáticos en una carpeta llamada 'dist' o 'build'
+
+-	name: Subir artefacto para el despliegue uses: actions/upload-pages-artifact@v3 with:
+# Indicamos la carpeta que contiene el sitio web listo para producción path: './dist'
+# --- TRABAJO 2: DESPLIEGUE ---
+deploy: environment:
+name: github-pages
+ 
+url: ${{ steps.deployment.outputs.page_url }} runs-on: ubuntu-latest
+# Este trabajo solo se ejecutará si el trabajo 'build' termina con éxito needs: build
+steps:
+-	name: Desplegar en GitHub Pages id: deployment
+uses: actions/deploy-pages@v4
